@@ -28,18 +28,26 @@ provider "aws" {
 
 resource "random_pet" "sg" {}
 
-# Modifica: Utilizziamo SSM Parameter Store per recuperare l'AMI di Ubuntu 20.04 senza usare DescribeImages
+# Optional override: allow CI to pass a concrete AMI ID and avoid SSM lookups
+variable "ami_id" {
+  type        = string
+  description = "Optional: AMI ID to use. If empty, falls back to SSM parameter."
+  default     = ""
+}
+
+# Use SSM Parameter Store to retrieve the Ubuntu 20.04 AMI (fallback)
 data "aws_ssm_parameter" "ubuntu" {
   name = "/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
 }
 
 resource "aws_instance" "web" {
-  # Modifica: Puntiamo al valore estratto dal parametro SSM
-  ami                    = data.aws_ssm_parameter.ubuntu.value
+  # Use TF var ami_id when set; otherwise fall back to SSM parameter.
+  # This avoids calling ssm:GetParameter in CI when TF_VAR_ami_id is provided.
+  ami                    = var.ami_id != "" ? var.ami_id : data.aws_ssm_parameter.ubuntu.value
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.web-sg.id]
 
-  # ECCO LA MODIFICA PER IL PROF: Installiamo Docker e avviamo un container!
+  # Install Docker and run a simple nginx container
   user_data = <<-EOF
               #!/bin/bash
               apt-get update
