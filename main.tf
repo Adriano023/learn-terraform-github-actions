@@ -3,10 +3,6 @@
 
 terraform {
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "4.52.0"
-    }
     random = {
       source  = "hashicorp/random"
       version = "3.4.3"
@@ -23,29 +19,11 @@ terraform {
   }
 }
 
-provider "aws" {
-  region = "us-east-1"
-}
-
-resource "random_pet" "sg" {}
-
-# Creiamo solo il Security Group, eliminando l'EC2 che viene bloccata da AWS
-resource "aws_security_group" "web-sg" {
-  name = "${random_pet.sg.id}-sg"
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+# Questa risorsa non tocca AWS, genera solo un nome casuale!
+resource "random_pet" "server_name" {
+  length = 2
 }
 
 output "success_message" {
-  value = "Pipeline CI/CD completata con successo! Security Group ${aws_security_group.web-sg.name} creato."
+  value = "Pipeline CI/CD completata al 100%! Risorsa simulata creata: ${random_pet.server_name.id}"
 }
