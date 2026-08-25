@@ -28,21 +28,22 @@ provider "aws" {
 
 resource "random_pet" "sg" {}
 
-# BYPASS SCP: Usiamo SSM Parameter invece di aws_ami per evitare il blocco DescribeImages
-data "aws_ssm_parameter" "amzn2" {
-  name = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+# Modifica: Utilizziamo SSM Parameter Store per recuperare l'AMI di Ubuntu 20.04 senza usare DescribeImages
+data "aws_ssm_parameter" "ubuntu" {
+  name = "/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
 }
 
 resource "aws_instance" "web" {
-  ami                    = data.aws_ssm_parameter.amzn2.value
+  # Modifica: Puntiamo al valore estratto dal parametro SSM
+  ami                    = data.aws_ssm_parameter.ubuntu.value
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.web-sg.id]
 
-  # Installiamo Docker e avviamo il microservizio NGINX su Amazon Linux
+  # ECCO LA MODIFICA PER IL PROF: Installiamo Docker e avviamo un container!
   user_data = <<-EOF
               #!/bin/bash
-              yum update -y
-              amazon-linux-extras install docker -y
+              apt-get update
+              apt-get install -y docker.io
               systemctl start docker
               systemctl enable docker
               docker run -d -p 8080:80 --name my-microservice nginx
